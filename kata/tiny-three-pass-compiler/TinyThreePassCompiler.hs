@@ -37,9 +37,8 @@ tokenize xxs@(c:cs)
 parse :: [Token] -> AST
 parse ts = ast
   where
-    (_:args', rest) = break (== TChar ']') ts
-    args = init args'
-    ast = snd $ parseExp (tail rest)
+    (_:args, _:rest) = break (== TChar ']') ts
+    ast = snd $ parseExp rest
 
     op2func :: Token -> (AST -> AST -> AST)
     op2func (TChar '+') = Add
@@ -78,7 +77,7 @@ parse ts = ast
         x         -> (ts, Arg $ index x args)
 
     index :: Eq a => a -> [a] -> Int
-    index x xs = length (takeWhile (/= x) xs) - 1
+    index x xs = length (takeWhile (/= x) xs)
 
 compile :: String -> [String]
 compile = pass3 . pass2 . pass1
@@ -87,7 +86,19 @@ pass1 :: String -> AST
 pass1 = parse . tokenize
 
 pass2 :: AST -> AST
-pass2 = undefined
+pass2 i@(Imm _) = i
+pass2 i@(Arg _) = i
+pass2 (Add t1 t2) = pass2' Add (+) t1 t2
+pass2 (Sub t1 t2) = pass2' Sub (-) t1 t2
+pass2 (Mul t1 t2) = pass2' Mul (*) t1 t2
+pass2 (Div t1 t2) = pass2' Div div t1 t2
+
+pass2' vc op t1 t2 = f v1 v2
+  where
+    v1 = pass2 t1
+    v2 = pass2 t2
+    f (Imm x) (Imm y) = Imm (op x y)
+    f v1 v2 = vc v1 v2
 
 pass3 :: AST -> [String]
 pass3 = undefined
