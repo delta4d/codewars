@@ -101,7 +101,16 @@ pass2' vc op t1 t2 = f v1 v2
     f v1 v2 = vc v1 v2
 
 pass3 :: AST -> [String]
-pass3 = undefined
+pass3 (Imm x) = ["IM " ++ show x]
+pass3 (Arg n) = ["AR " ++ show n]
+pass3 (Add t1 t2) = pass3' ["AD"] t1 t2
+pass3 (Sub t1 t2) = pass3' ["SU"] t1 t2
+pass3 (Mul t1 t2) = pass3' ["MU"] t1 t2
+pass3 (Div t1 t2) = pass3' ["DI"] t1 t2
+pass3' cmd t1 t2 = c1 ++ ["PU"] ++ c2 ++ ["SW", "PO"] ++ cmd
+  where
+    c1 = pass3 t1
+    c2 = pass3 t2
 
 simulate :: [String] -> [Int] -> Int
 simulate asm argv = takeR0 $ foldl' step (0, 0, []) asm where
@@ -117,3 +126,6 @@ simulate asm argv = takeR0 $ foldl' step (0, 0, []) asm where
       "MU" -> (r0 * r1, r1, stack)
       "DI" -> (r0 `div` r1, r1, stack)
   takeR0 (r0,_,_) = r0
+
+test :: String -> [Int] -> Int
+test s args = simulate (compile s) args
